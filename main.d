@@ -34,6 +34,7 @@ enum TokenType
     divideEquals,
     equals,
     goesTo,
+    not,
     semiColon,
     
     comment,
@@ -60,8 +61,9 @@ void main(string[] args)
         ":":colon,
         "/":divide,
         "/=":divideEquals,
-        "=":equals,
+        //~ "=":equals,
         "=>":goesTo,
+        "!":not,
         ";":semiColon,
     ];
     import std.file;
@@ -76,11 +78,24 @@ void main(string[] args)
     version (None)
     with (TokenType)
     {
-        if (tok.match(identifier, colon, braceL))
+        if (tok.match(identifier, colon, braceL, tok))
         {
-            if (tok.peek(3).type != braceR)
-                warn("Label before block not recommended - move label inside block");
+            if (tok.peek.type != braceR)
+                warn("Note: Labelled blocks are not scoped (move label inside block)");
         }
+        Token tok2;
+        // version(!Foo) -> version(Foo){} else
+        if (tok.match("version", bracketL, not, tok, identifier, bracketR, tok2))
+        {
+            tok.src = "";
+            tok2.after = "{} else";
+            tok = tok2;
+        }
+    }
+    // incompatible
+    version (E)
+    with (TokenType)
+    {
         // typeof(1 / 2) == real;
         if (tok.type == divide)
             tok.after ~= " cast(real)";
