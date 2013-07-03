@@ -23,7 +23,7 @@
  */
 
 
-enum TokenType
+enum OpType
 {
     braceL,
     braceR,
@@ -32,28 +32,86 @@ enum TokenType
     colon,
     divide,
     divideEquals,
-    equals,
+    //~ equals,
     goesTo,
     not,
     semiColon,
+}
     
+enum TokenType
+{
     comment,
     identifier,
-    keyword,
+    //~ keyword,
+    operator,
     string,
 }
 
-struct Token
+final class Token
 {
     TokenType type;
+    OpType op;
+    string src;
+    string after;
 }
 
 import std.stdio;
+import std.algorithm;
+import std.ascii;
+import std.range;
+
+OpType[string] ops;
+
+size_t maxOpLen;
+
+auto takeFront(R)(R r)
+{
+    auto v = r.front;
+    r.popFront;
+    return v;
+}
+
+bool isOpChar(dchar c)
+{
+    return c.isPunctuation && c != '_' && c != '@';
+}
+
+Token readToken(ref string text)
+{
+    with (TokenType) {
+    auto tok = new Token;
+    auto start = text;
+    
+    //~ if (start.empty)
+    auto c = text.takeFront;
+    
+    if (c.isOpChar)
+    {
+        tok.type = operator;
+        auto len = 1;
+        if (text[0].isOpChar)
+        {
+            len = 2;
+            text.popFront;
+        }
+        tok.src = start[0..len];
+        auto ptr = tok.src in ops;
+        tok.op = *ptr;
+    }
+    else if (c.isAlpha)
+    {
+        tok.type = identifier;
+        auto len = 0;
+        do len++; while (text.takeFront.isAlphaNum);
+        tok.src = start[0..len];
+    }
+    return tok;
+}}
 
 void main(string[] args)
 {
-    with (TokenType)
-    auto tokens = [
+    with (OpType)
+    ops = [
         "{":braceL,
         "}":braceR,
         "(":bracketL,
@@ -66,17 +124,14 @@ void main(string[] args)
         "!":not,
         ";":semiColon,
     ];
+    maxOpLen = ops.keys.map!(s => s.length).reduce!((a, b) => a + b);
     import std.file;
     auto text = args[1].readText;
     Token tok;
-    void read(ref Token tok, ref string text)
-    {
-        
-    }
-    tok.read(text);
+    tok = readToken(text);
     
     version (None)
-    with (TokenType)
+    with (OpType)
     {
         if (tok.match(identifier, colon, braceL, tok))
         {
@@ -94,7 +149,7 @@ void main(string[] args)
     }
     // incompatible
     version (E)
-    with (TokenType)
+    with (OpType)
     {
         // typeof(1 / 2) == real;
         if (tok.type == divide)
