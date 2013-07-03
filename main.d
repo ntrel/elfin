@@ -40,7 +40,6 @@ enum OpType
     
 enum TokenType
 {
-    comment,
     identifier,
     //~ keyword,
     operator,
@@ -51,24 +50,60 @@ final class Token
 {
     TokenType type;
     OpType op;
+    string header;
     string src;
     string after;
 }
 
-import std.stdio;
 import std.algorithm;
 import std.ascii;
 import std.range;
+import std.stdio;
+import std.string;
 
 OpType[string] ops;
 
+size_t line = 1;
+
 size_t maxOpLen;
 
-auto takeFront(R)(R r)
+void error(string msg)
+{
+    import std.c.stdlib;
+    stderr.writefln("(%s): Error: %s", line, msg);
+    exit(1);
+}
+
+alias drop = popFront;
+
+// Note: some ranges don't have persistent front e.g. ByLine
+auto takeFront(T)(T[] r)
 {
     auto v = r.front;
-    r.popFront;
+    r.drop;
     return v;
+}
+
+string readHeader(ref string text)
+{
+    auto start = text;
+    while (text[0].isWhite)
+    {
+        do
+        {
+            if (text[0] == '\r')
+            {
+                if (text[1] == '\n')
+                    text.drop;
+            }
+            else if (text[0] != '\n')
+                break;
+            line++;
+        } while (0);
+        text.drop;
+    }
+    start.length -= text.length;
+    return start;
 }
 
 bool isOpChar(dchar c)
@@ -80,9 +115,9 @@ Token readToken(ref string text)
 {
     with (TokenType) {
     auto tok = new Token;
-    auto start = text;
+    tok.header = readHeader(text);
     
-    //~ if (start.empty)
+    auto start = text;
     auto c = text.takeFront;
     
     if (c.isOpChar)
@@ -92,7 +127,7 @@ Token readToken(ref string text)
         if (text[0].isOpChar)
         {
             len = 2;
-            text.popFront;
+            text.drop;
         }
         tok.src = start[0..len];
         auto ptr = tok.src in ops;
@@ -105,6 +140,9 @@ Token readToken(ref string text)
         do len++; while (text.takeFront.isAlphaNum);
         tok.src = start[0..len];
     }
+    else
+        error(format("Unknown character '%s'", c));
+    
     return tok;
 }}
 
@@ -127,6 +165,7 @@ void main(string[] args)
     maxOpLen = ops.keys.map!(s => s.length).reduce!((a, b) => a + b);
     import std.file;
     auto text = args[1].readText;
+    text ~= '\0'; // to avoid checking text.length
     Token tok;
     tok = readToken(text);
     
