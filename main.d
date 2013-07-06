@@ -178,6 +178,12 @@ void main(string[] args)
                 warn("Note: Labelled blocks are not scoped (move label inside block)");
         }
         Token tok2;
+        if (tok.isType && tok.match(identifier, ampersand, tok2))
+        {
+            tok.before = "NonNull!(";
+            tok2.src = ")";
+            tok = tok2;
+        }
         // version(!Foo) -> version(Foo){} else
         if (tok.match("version", bracketL, not, tok, identifier, bracketR, tok2))
         {
