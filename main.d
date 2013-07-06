@@ -184,12 +184,13 @@ void main(string[] args)
             tok2.src = ")";
             tok = tok2;
         }
-        // version(!Foo) -> version(Foo){} else
-        if (tok.match("version", bracketL, not, tok, identifier, bracketR, tok2))
+        // version(!Foo) -> static if(!Version!"Foo")
+        if (tok.match("version", bracketL, not, identifier, tok2, bracketR))
         {
-            tok.src = "";
-            tok2.after = "{} else";
-            tok = tok2;
+            tok.src = "static if";
+            tok2.before = "Version!\"";
+            tok2.after = "\"";
+            tok = tok2.next;
         }
     }
     // incompatible
