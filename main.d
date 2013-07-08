@@ -178,10 +178,17 @@ void main(string[] args)
                 warn("Note: Labelled blocks are not scoped (move label inside block)");
         }
         Token tok2;
-        if (tok.isType && tok.match(identifier, ampersand, tok2))
+        // 'T& v' but not 'T &v', 'x & y'
+        if (tok.header == "" && tok.match(identifier, ampersand, tok2))
         {
-            tok.before = "NonNull!(";
-            tok2.src = ")";
+            Token t = tok2.next;
+            // not 'T&v' but '(T&)', '[T&]' ok
+            if ((t.header.length && t.header[0].isWhite) ||
+                ")]".canFind(t.src[0]))
+            {
+                tok.before = "NonNull!(";
+                tok2.src = ")";
+            }
             tok = tok2;
         }
         // version(!Foo) -> static if(!Version!"Foo")
