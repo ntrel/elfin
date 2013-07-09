@@ -46,13 +46,24 @@ enum TokenType
     string,
 }
 
-final class Token
+struct Token
 {
     TokenType type;
     OpType op;
     string header;
     string src;
     string after;
+    size_t index;
+
+    Token next()
+    {
+        return tokens[index + 1];
+    }
+
+    bool hasNext()
+    {
+        return index + 1 < tokens.length;
+    }
 }
 
 import std.algorithm;
@@ -60,12 +71,15 @@ import std.ascii;
 import std.range;
 import std.stdio;
 import std.string;
+import std.exception;
+
+Token[] tokens;
+size_t tokenIndex;
 
 OpType[string] ops;
+size_t maxOpLen;
 
 size_t line = 1;
-
-size_t maxOpLen;
 
 void error(string msg)
 {
@@ -114,7 +128,7 @@ bool isOpChar(dchar c)
 Token readToken(ref string text)
 {
     with (TokenType) {
-    auto tok = new Token;
+    Token tok;
     tok.header = readHeader(text);
     
     auto start = text;
@@ -146,7 +160,7 @@ Token readToken(ref string text)
     return tok;
 }}
 
-void main(string[] args)
+static this()
 {
     with (OpType)
     ops = [
@@ -163,12 +177,35 @@ void main(string[] args)
         ";":semiColon,
     ];
     maxOpLen = ops.keys.map!(s => s.length).reduce!((a, b) => a + b);
+}
+
+void main(string[] args)
+{
     import std.file;
     auto text = args[1].readText;
+    enforce(!text.find('\0'), "Null bytes not allowed!");
     text ~= '\0'; // to avoid checking text.length
-    Token tok;
-    tok = readToken(text);
     
+    Token tok;
+    do
+    {
+        tok = readToken(text);
+        tok.index = tokenIndex++;
+        tokens ~= tok;
+    } while (text[0] != '\0');
+    
+    tok = tokens[0];
+    while (true)
+    {
+        parse(tok);
+        if (!tok.hasNext)
+            break;
+        tok = tok.next;
+    }
+}
+
+void parse(ref Token tok)
+{
     version (None)
     with (OpType)
     {
