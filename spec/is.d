@@ -1,20 +1,39 @@
-is(Declarations; TypeTest, TemplateParameterList)
+is(TypeTest, TemplateParameterList)
 
-// declarations come first when is used in static if:
-static if (is(B; T == B*));
-static if (is(alias Tem, Args; T == Tem!Args));
-// here decls must go in template param list, as B not introduced to scope
+// In static if tests, this form exposes optional Declarations and/or
+// Alias to the `if` branch.
+// TemplateParameterList declarations are no longer exposed
+is(Declarations; TypeTest, TemplateParameterList)
+// Note: we can avoid D ambiguity on exposing TPL by requiring a
+// semi-colon for is(; Test, TPL) when used in static if.
+
+// Alias only allowed when no type operator ==,:
+is(Declarations; Alias = Type, TemplateParameterList)
+
+// Code below assumes T is in scope
+
+// escaping declarations come first; only allowed with static if:
+static if (is(B; T == B*))
+	return B.sizeof;
+// is T a template instance?
+static if (is(alias Tem; T == Tem!Args, Args))
+	alias template = Tem;
+
+// here decls must go in template param list, as `is` can't introduce B to scope
 enum e = is(T == B*, B);
 
-// A is an alias of T as it doesn't appear in TPL
-static if (is(A; T));
-// Alt syntax, doesn't work like is(T identifier == keyword) forms, but see traits below
-static if (is(A = T; A));
-// A is T, not enum base type
-static if (is(A = T; A == enum));
-static if (is(V = Foo!(int[2]), AA = V[char[]]; AA)) alias template = AA;
+// Alias Type form
+static if (is(A = T!U, U))
+	A() a;
 
-// equivalent to `is(T B == enum)` if B doesn't appear on RHS
+// enhancement: declare V and alias AA if Foo!T compiles and V[string] is a type
+static if (is(V = Foo!T; AA = V[string]))
+	return AA {"k" : new V};
+
+// could have equivalent to `is(T B == enum)`, when B doesn't appear on RHS
+// this is not intuitive what B is
 static if (is(B; T == enum));
-// probably T identifier == keyword special forms should be __traits instead
-static if (is(E = T; E == enum)) alias B = __traits(baseType, E);
+	B b = T.max;
+// better: T identifier == keyword special forms become __traits instead
+static if (is(T == enum))
+	alias B = __traits(baseType, T);
