@@ -14,6 +14,8 @@ TypeTest:
 
 // Code below assumes T is in scope
 
+## Declarations
+
 // B introduced to scope
 static if (is(T == B*, B))
 	return B.sizeof;
@@ -25,11 +27,16 @@ static if (is(T == Tem!Args, alias Tem; Args))
 enum e = is(T == B*; B);
 enum e = is(T == B*, B); // allowed for backward compat
 
-// Identifier form
-static if (is(A = T!U; U))
+## Identifier form
+
+static if (is(A = T!int))
 	A() a;
 
-// enhancement: multiple tests
+static if (is(T U : U*)) //existing
+static if (is(U = T : U*)) // error, U cannot appear after `=`
+
+## Enhancement: multiple tests
+
 is(TypeTests, Declarations; TemplateParameterList)
 TypeTests:
 	Identifier = TypeTest, TypeTests
@@ -38,9 +45,11 @@ TypeTests:
 static if (is(V = Foo!T, AA = V[string]))
 	return AA {"k" : new V};
 
-// existing, kept - no Identifier
+## Type == Keyword
+
+// existing, kept as there's no Identifier
 is ( Type == TypeSpecialization )
-bool b = is(T == class);
+enum b = is(T == class);
 
 // we could have equivalent to `is(T B == enum)`
 TypeTest:
