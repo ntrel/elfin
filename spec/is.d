@@ -1,39 +1,54 @@
-is(TypeTest, TemplateParameterList)
+// Note: all parts but Type are optional
+// Identifier only allowed within a `static if` test
 
-// In static if tests, this form exposes optional Declarations and/or
-// Alias to the `if` branch.
-// TemplateParameterList declarations are no longer exposed
-is(Declarations; TypeTest, TemplateParameterList)
-// Note: we can avoid D ambiguity on exposing TPL by requiring a
-// semi-colon for is(; Test, TPL) when used in static if.
+// existing, superceded
+is ( Type Identifier : TypeSpecialization , TemplateParameterList )
+is ( Type Identifier == TypeSpecialization , TemplateParameterList )
 
-// Alias only allowed when no type operator ==,:
-is(Declarations; Alias = Type, TemplateParameterList)
+// new
+// separate Declarations for current scope, any TemplateParameterList decls not exposed
+is(Identifier = TypeTest, Declarations; TemplateParameterList)
+TypeTest:
+	Type : Type
+	Type == Type
 
 // Code below assumes T is in scope
 
-// escaping declarations come first; only allowed with static if:
-static if (is(B; T == B*))
+// B introduced to scope
+static if (is(T == B*, B))
 	return B.sizeof;
 // is T a template instance?
-static if (is(alias Tem; T == Tem!Args, Args))
-	alias template = Tem;
+// Tem introduced, Args not
+static if (is(T == Tem!Args, alias Tem; Args))
+	alias __self = Tem;
+// equivalent, not in `static if`
+enum e = is(T == B*; B);
+enum e = is(T == B*, B); // allowed for backward compat
 
-// here decls must go in template param list, as `is` can't introduce B to scope
-enum e = is(T == B*, B);
-
-// Alias Type form
-static if (is(A = T!U, U))
+// Identifier form
+static if (is(A = T!U; U))
 	A() a;
 
-// enhancement: declare V and alias AA if Foo!T compiles and V[string] is a type
-static if (is(V = Foo!T; AA = V[string]))
+// enhancement: multiple tests
+is(TypeTests, Declarations; TemplateParameterList)
+TypeTests:
+	Identifier = TypeTest, TypeTests
+
+// declare V and AA if Foo!T and V[string] are valid types
+static if (is(V = Foo!T, AA = V[string]))
 	return AA {"k" : new V};
 
-// could have equivalent to `is(T B == enum)`, when B doesn't appear on RHS
-// this is not intuitive what B is
-static if (is(B; T == enum));
-	B b = T.max;
+// existing, kept - no Identifier
+is ( Type == TypeSpecialization )
+bool b = is(T == class);
+
+// we could have equivalent to `is(T B == enum)`
+TypeTest:
+	Type == TypeSpecialization
+// not intuitive what B is
+static if (is(B = T == enum));
+	B b = T.max; // B is enum base type
+
 // better: T identifier == keyword special forms become __traits instead
 static if (is(T == enum))
-	alias B = __traits(baseType, T);
+	__traits(baseType, T) b = T.max;
