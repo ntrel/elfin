@@ -6,8 +6,8 @@ is ( Type Identifier : TypeSpecialization , TemplateParameterList )
 is ( Type Identifier == TypeSpecialization , TemplateParameterList )
 
 // new
-// separate Declarations for current scope, any TemplateParameterList decls not exposed
-is(Identifier = TypeTest, Declarations; TemplateParameterList)
+// 2 separate TPLs - current scope declarations, then any TemplateParameterList decls not exposed
+is(Identifier = TypeTest, TemplateParameterList; TemplateParameterList)
 TypeTest:
 	Type : Type
 	Type == Type
@@ -32,12 +32,14 @@ enum e = is(T == B*, B); // allowed for backward compat
 static if (is(A = T!int))
 	A() a;
 
-static if (is(T U : U*)) //existing
+// Identifier = TypeTest always makes Identifier an alias for Type:
+static if (is(T U : U*)) // existing, U != T
 static if (is(U = T : U*)) // error, U cannot appear after `=`
+static if (is(T : U*, U)) // use TPL, not Identifer
 
 ## Enhancement: multiple tests
 
-is(TypeTests, Declarations; TemplateParameterList)
+is(TypeTests, TemplateParameterList; TemplateParameterList)
 TypeTests:
 	Identifier = TypeTest, TypeTests
 
